@@ -116,7 +116,7 @@ Building reliable state synchronisation between the React frontend and the Mongo
    - Create a `.env` file in the `server/` directory:
      ```
      MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>.mongodb.net/<dbname>
-     PORT=5000
+   PORT=5001
      ```
 
 4. **Seed the database:**
@@ -128,6 +128,6 @@ Building reliable state synchronisation between the React frontend and the Mongo
    ```bash
    npm run dev
    ```
-   This starts both the Express backend (port 5000) and the Vite frontend (port 5173) concurrently.
+   This starts both the Express backend (port 5001) and the Vite frontend (port 5173) concurrently.
 
 6. **Open the app:** Navigate to `http://localhost:5173` in your browser.
