@@ -1,16 +1,23 @@
 {
-  "name": "shopflow-server",
+  "name": "annz-bricks-server",
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
     "seed": "node src/seed.js"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.18.2",
     "express-validator": "^7.0.1",
-    "mongoose": "^8.2.0"
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.2.0",
+    "multer": "^2.2.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
   }
 }

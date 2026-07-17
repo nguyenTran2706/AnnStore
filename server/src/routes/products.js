@@ -1,6 +1,7 @@
 const express = require('express');
 const { body, param, validationResult } = require('express-validator');
 const Product = require('../models/Product');
+const { requireAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -33,8 +34,24 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-/* ── POST /api/products — create a product ── */
-router.post('/', productRules, validate, async (req, res, next) => {
+/* ── GET /api/products/:id — single product ── */
+router.get(
+  '/:id',
+  [param('id').isMongoId().withMessage('Invalid product ID')],
+  validate,
+  async (req, res, next) => {
+    try {
+      const product = await Product.findById(req.params.id);
+      if (!product) return res.status(404).json({ message: 'Product not found' });
+      res.json(product);
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/* ── POST /api/products — create a product (admin only) ── */
+router.post('/', requireAdmin, productRules, validate, async (req, res, next) => {
   try {
     const product = await Product.create(req.body);
     res.status(201).json(product);
@@ -43,9 +60,10 @@ router.post('/', productRules, validate, async (req, res, next) => {
   }
 });
 
-/* ── PUT /api/products/:id — update a product ── */
+/* ── PUT /api/products/:id — update a product (admin only) ── */
 router.put(
   '/:id',
+  requireAdmin,
   [param('id').isMongoId().withMessage('Invalid product ID'), ...productRules],
   validate,
   async (req, res, next) => {
@@ -62,9 +80,10 @@ router.put(
   }
 );
 
-/* ── DELETE /api/products/:id — delete a product ── */
+/* ── DELETE /api/products/:id — delete a product (admin only) ── */
 router.delete(
   '/:id',
+  requireAdmin,
   [param('id').isMongoId().withMessage('Invalid product ID')],
   validate,
   async (req, res, next) => {

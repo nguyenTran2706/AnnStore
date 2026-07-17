@@ -1,8 +1,14 @@
 const mongoose = require('mongoose');
 
-/* ── CartItem Schema ── */
+/* ── CartItem Schema (scoped per user) ── */
 const cartItemSchema = new mongoose.Schema(
   {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: [true, 'User reference is required'],
+      index: true,
+    },
     productId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Product',
@@ -14,12 +20,10 @@ const cartItemSchema = new mongoose.Schema(
       min: [1, 'Quantity must be at least 1'],
       default: 1,
     },
-    addedAt: {
-      type: Date,
-      default: Date.now,
-    },
   },
   { timestamps: true }
 );
+
+cartItemSchema.index({ userId: 1, productId: 1 }, { unique: true });
 
 module.exports = mongoose.model('CartItem', cartItemSchema);

@@ -14,6 +14,11 @@ const errorHandler = (err, req, res, _next) => {
     return res.status(400).json({ message: 'Invalid ID format' });
   }
 
+  // Multer upload errors (file too large, too many files, ...)
+  if (err.name === 'MulterError') {
+    return res.status(400).json({ message: err.message });
+  }
+
   // Fallback
   res.status(err.status || 500).json({
     message: err.message || 'Internal server error',

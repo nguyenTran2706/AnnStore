@@ -1,40 +1,51 @@
-import { useState } from 'react';
-import { useAppContext } from '../App';
+import { useState, forwardRef } from 'react';
+import { Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useCart } from '../context/CartContext';
+import ProductImage from './ProductImage';
+import { useStaggerItem } from './motion/variants';
 
-export default function ProductCard({ product }) {
-  const { handleAddToCart } = useAppContext();
+const MotionLink = motion(Link);
+
+// forwardRef is required: AnimatePresence mode="popLayout" measures its
+// direct children via ref, and without it exit animations never complete.
+const ProductCard = forwardRef(function ProductCard({ product }, ref) {
+  const { addToCart } = useCart();
+  const itemVariants = useStaggerItem();
   const [adding, setAdding] = useState(false);
-  const [imgError, setImgError] = useState(false);
+  const [added, setAdded] = useState(false);
 
   const outOfStock = product.stock <= 0;
 
-  const onAdd = async () => {
-    if (outOfStock) return;
+  const onAdd = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (outOfStock || adding) return;
     setAdding(true);
-    await handleAddToCart(product._id);
-    setTimeout(() => setAdding(false), 400);
+    const ok = await addToCart(product, 1);
+    setAdding(false);
+    if (ok) {
+      setAdded(true);
+      setTimeout(() => setAdded(false), 800);
+    }
   };
 
   return (
-    <div className={`card-interactive overflow-hidden flex flex-col anim-up ${outOfStock ? 'opacity-80' : ''}`}>
+    <MotionLink
+      ref={ref}
+      to={`/products/${product._id}`}
+      variants={itemVariants}
+      whileHover={{ y: -4 }}
+      className={`card-interactive overflow-hidden flex flex-col ${outOfStock ? 'opacity-80' : ''}`}
+    >
       {/* image */}
-      <div className="relative overflow-hidden bg-bg-alt aspect-[4/3]">
-        {imgError ? (
-          <div className="w-full h-full flex items-center justify-center text-ink-faint text-3xl">
-            <svg className="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
-            </svg>
-          </div>
-        ) : (
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            className={`w-full h-full object-cover transition-transform duration-300 ${outOfStock ? 'grayscale' : 'hover:scale-105'}`}
-            loading="lazy"
-            onError={() => setImgError(true)}
-          />
-        )}
-
+      <ProductImage
+        src={product.imageUrl}
+        alt={product.name}
+        aspect="square"
+        padding="p-6"
+        className="!rounded-b-none"
+      >
         {outOfStock && (
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
             <span className="bg-red-600 text-white text-xs font-bold px-4 py-1.5 rounded-full uppercase tracking-wider shadow-lg">
@@ -50,7 +61,7 @@ export default function ProductCard({ product }) {
             </span>
           </div>
         )}
-      </div>
+      </ProductImage>
 
       {/* info */}
       <div className="p-4 flex flex-col flex-1">
@@ -77,29 +88,45 @@ export default function ProductCard({ product }) {
             )}
           </div>
 
-          <button
+          <motion.button
             onClick={onAdd}
             disabled={outOfStock || adding}
-            className={`!px-3 !py-1.5 text-xs flex items-center gap-1.5 font-medium rounded-card transition-all duration-200 active:scale-[0.97] ${
-              outOfStock
-                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                : 'btn-primary'
+            whileTap={outOfStock ? undefined : { scale: 0.95 }}
+            className={`!px-3 !py-1.5 text-xs flex items-center gap-1.5 font-medium rounded-card transition-colors duration-200 min-w-[86px] justify-center ${
+              outOfStock ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'btn-primary'
             }`}
             aria-label={outOfStock ? `${product.name} is sold out` : `Add ${product.name} to cart`}
           >
-            {adding ? (
-              <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-            ) : outOfStock ? (
-              'Sold Out'
-            ) : (
-              'Add to cart'
-            )}
-          </button>
+            <AnimatePresence mode="wait" initial={false}>
+              {adding ? (
+                <motion.span key="spin" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                </motion.span>
+              ) : added ? (
+                <motion.span
+                  key="check"
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                </motion.span>
+              ) : (
+                <motion.span key="label" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  {outOfStock ? 'Sold Out' : 'Add to cart'}
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </motion.button>
         </div>
       </div>
-    </div>
+    </MotionLink>
   );
-}
+});
+
+export default ProductCard;

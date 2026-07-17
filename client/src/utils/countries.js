@@ -1,0 +1,26 @@
+/* Countries offered at checkout — Australia first (home market), the rest
+   alphabetical. Extend freely; the server only requires a non-empty value. */
+export const COUNTRIES = [
+  'Australia',
+  'Canada',
+  'China',
+  'France',
+  'Germany',
+  'Hong Kong',
+  'India',
+  'Indonesia',
+  'Italy',
+  'Japan',
+  'Malaysia',
+  'Netherlands',
+  'New Zealand',
+  'Philippines',
+  'Singapore',
+  'South Korea',
+  'Spain',
+  'Taiwan',
+  'Thailand',
+  'United Kingdom',
+  'United States',
+  'Vietnam',
+];

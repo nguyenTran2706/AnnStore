@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useAppContext } from '../App';
+import * as api from '../services/api';
+import { useToast } from '../context/ToastContext';
+import ImagePicker from './admin/ImagePicker';
 
-export default function ProductModal({ product, onClose }) {
-  const { handleCreateProduct, handleUpdateProduct } = useAppContext();
+export default function ProductModal({ product, onClose, onSaved }) {
+  const { addToast } = useToast();
   const isEdit = !!product;
 
   const [form, setForm] = useState({
@@ -62,26 +64,34 @@ export default function ProductModal({ product, onClose }) {
 
     setSaving(true);
     try {
-      if (isEdit) await handleUpdateProduct(product._id, payload);
-      else await handleCreateProduct(payload);
+      if (isEdit) {
+        await api.updateProduct(product._id, payload);
+        addToast('Product updated');
+      } else {
+        await api.createProduct(payload);
+        addToast('Product created');
+      }
+      await onSaved?.();
       onClose();
-    } catch { /* toast handled by App */ }
-    finally { setSaving(false); }
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Failed to save product', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const fields = [
     { key: 'name', label: 'Name', type: 'text', placeholder: 'Product name' },
     { key: 'description', label: 'Description', type: 'textarea', placeholder: 'Brief description' },
     { key: 'price', label: 'Price', type: 'number', placeholder: '0.00' },
-    { key: 'category', label: 'Category', type: 'text', placeholder: 'e.g. Electronics' },
-    { key: 'imageUrl', label: 'Image URL', type: 'url', placeholder: 'https://...' },
+    { key: 'category', label: 'Category', type: 'text', placeholder: 'e.g. Ninjago' },
     { key: 'stock', label: 'Stock', type: 'number', placeholder: '0' },
   ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 anim-fade">
       <div className="absolute inset-0 bg-black/20" onClick={onClose} />
-      <div className="relative bg-white rounded-card w-full max-w-md max-h-[85vh] overflow-y-auto shadow-modal anim-scale">
+      <div className="relative bg-white rounded-card w-full max-w-lg max-h-[85vh] overflow-y-auto shadow-modal anim-scale">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h2 className="font-heading text-lg text-ink">{isEdit ? 'Edit product' : 'New product'}</h2>
           <button onClick={onClose} className="p-1.5 rounded hover:bg-bg-alt text-ink-light hover:text-ink transition-colors">
@@ -121,6 +131,17 @@ export default function ProductModal({ product, onClose }) {
               {errors[key] && <p className="text-danger text-xs mt-0.5">{errors[key]}</p>}
             </div>
           ))}
+
+          <div>
+            <ImagePicker
+              value={form.imageUrl}
+              onChange={(url) => {
+                setForm((prev) => ({ ...prev, imageUrl: url }));
+                if (errors.imageUrl) setErrors((prev) => ({ ...prev, imageUrl: null }));
+              }}
+            />
+            {errors.imageUrl && <p className="text-danger text-xs mt-0.5">{errors.imageUrl}</p>}
+          </div>
 
           <div className="flex gap-2 pt-2">
             <button type="button" onClick={onClose} className="btn-secondary flex-1">Cancel</button>

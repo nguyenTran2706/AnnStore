@@ -1,7 +1,8 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const Product = require('./models/Product');
-const Admin = require('./models/Admin');
+const User = require('./models/User');
+const CartItem = require('./models/CartItem');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/shopflow';
 
@@ -253,10 +254,12 @@ const products = [
 
 ];
 
-// Admin credentials to seed
+// Admin account to seed (password is bcrypt-hashed by the User pre-save hook)
 const adminUser = {
-  username: 'truonganvu',
+  name: 'Ann',
+  email: 'admin@annzbricks.com',
   password: '12345@',
+  role: 'admin',
 };
 
 async function seed() {
@@ -270,10 +273,13 @@ async function seed() {
     const inserted = await Product.insertMany(products);
     console.log('Seeded ' + inserted.length + ' products');
 
+    await CartItem.deleteMany({});
+    console.log('Cleared existing cart items');
+
     // Seed admin user
-    await Admin.deleteMany({});
-    await Admin.create(adminUser);
-    console.log('Seeded admin user: ' + adminUser.username);
+    await User.deleteMany({});
+    await User.create(adminUser);
+    console.log('Seeded admin user: ' + adminUser.email);
 
     await mongoose.disconnect();
     console.log('Done - disconnected from MongoDB');
