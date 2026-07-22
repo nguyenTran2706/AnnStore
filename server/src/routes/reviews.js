@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
+const { put } = require('@vercel/blob');
 const { body, param, validationResult } = require('express-validator');
 const Review = require('../models/Review');
 const Order = require('../models/Order');
@@ -19,10 +20,11 @@ const validate = (req, res, next) => {
   next();
 };
 
-/* ── Photo uploads: 3 images max, 5MB each, image types only.
-      Filenames are random (never the client's name). ── */
+/* ── Photo uploads: 3 images max, image types only. Filenames are random
+      (never the client's name). Files are held in memory then pushed to Vercel
+      Blob in prod, or written to local disk in dev. NOTE the per-file limit is
+      kept small: Vercel serverless caps the request body at ~4.5MB total. ── */
 const UPLOAD_DIR = path.join(__dirname, '../../uploads/reviews');
-fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const EXT_BY_MIME = {
   'image/jpeg': '.jpg',
@@ -32,14 +34,26 @@ const EXT_BY_MIME = {
 };
 
 const upload = multer({
-  storage: multer.diskStorage({
-    destination: UPLOAD_DIR,
-    filename: (req, file, cb) =>
-      cb(null, crypto.randomBytes(12).toString('hex') + EXT_BY_MIME[file.mimetype]),
-  }),
-  limits: { fileSize: 5 * 1024 * 1024, files: 3 },
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 1024 * 1024, files: 3 },
   fileFilter: (req, file, cb) => cb(null, Boolean(EXT_BY_MIME[file.mimetype])),
 });
+
+/* Persist one uploaded photo, returning the URL to store on the review.
+   Uses Vercel Blob when BLOB_READ_WRITE_TOKEN is set (prod), else local disk. */
+async function saveReviewImage(file) {
+  const filename = crypto.randomBytes(12).toString('hex') + EXT_BY_MIME[file.mimetype];
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const { url } = await put(`reviews/${filename}`, file.buffer, {
+      access: 'public',
+      contentType: file.mimetype,
+    });
+    return url; // absolute https URL served by Blob's CDN
+  }
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+  fs.writeFileSync(path.join(UPLOAD_DIR, filename), file.buffer);
+  return `/uploads/reviews/${filename}`;
+}
 
 /* ── GET /api/reviews/product/:id — public list + rating summary ── */
 router.get(
@@ -108,7 +122,7 @@ router.post(
         orderId,
         rating: Number(rating),
         comment,
-        images: (req.files || []).map((f) => `/uploads/reviews/${f.filename}`),
+        images: await Promise.all((req.files || []).map(saveReviewImage)),
       });
       const populated = await review.populate('userId', 'name');
       res.status(201).json(populated);

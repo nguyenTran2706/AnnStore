@@ -79,7 +79,10 @@ export const updateOrderTracking = (id, trackingNumber, carrier) =>
 export const fetchAdminCustomers = () => api.get('/admin/customers').then((r) => r.data);
 export const updateCustomerRole = (id, role) =>
   api.patch(`/admin/customers/${id}/role`, { role }).then((r) => r.data);
-export const fetchAdminImages = () => api.get('/admin/images').then((r) => r.data);
+/* Static gallery manifest (baked at build by scripts/gen-image-manifest.js).
+   Served directly from /public so it works on Vercel without a serverless read. */
+export const fetchAdminImages = () =>
+  fetch('/images-manifest.json').then((r) => r.json());
 export const fetchAdminReviews = () => api.get('/admin/reviews').then((r) => r.data);
 export const replyToReview = (id, text) =>
   api.patch(`/admin/reviews/${id}/reply`, { text }).then((r) => r.data);

@@ -114,12 +114,18 @@ AnnStore/
 ├── server/                          # Backend (Node.js + Express)
 │   ├── .env                         # MONGODB_URI, PORT, JWT_SECRET, TAX_RATE (not committed)
 │   └── src/
-│       ├── index.js                 # Express app, routes, static /images, JWT_SECRET startup guard
+│       ├── app.js                   # Express app (exported; used by local index.js and Vercel api/index.js)
+│       ├── index.js                 # Local dev entry: JWT_SECRET guard, connect Mongo, listen
+│       ├── db.js                    # Cached Mongo connection (serverless-safe)
 │       ├── seed.js                  # Seeds 29 products + admin user
 │       ├── middleware/              # auth.js (requireAuth/requireAdmin), errorHandler.js
 │       ├── models/                  # Product, CartItem (per-user), Order, User
 │       └── routes/                  # products, cart (incl. /merge), orders (simulated payment), auth
-├── images/                          # Local product images served via Express static middleware
+├── api/index.js                     # Vercel serverless entry (wraps server/src/app.js)
+├── client/public/images/            # Product images (static; served by Vite in dev, Vercel CDN in prod)
+├── scripts/gen-image-manifest.js    # Bakes client/public/images-manifest.json for the admin gallery
+├── vercel.json                      # Vercel build/output/rewrites config
+├── DEPLOY.md                        # Step-by-step Vercel deployment guide
 ├── package.json                     # Root: concurrently runs client + server with `npm run dev`
 └── docs/OVERHAUL_PLAN.md            # The implementation plan this build followed
 ```
